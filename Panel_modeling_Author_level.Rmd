@@ -1,0 +1,242 @@
+---
+title: "Panel_modeling_author_level"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(rcompanion)
+library(lmtest)
+library(sandwich)
+library(plm)
+
+```
+
+
+
+#### Input File Location
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+author_file = 'Data/AuthorArticleLevel-RegData-ALLSA_Xc_1_NData_864590.dta'
+
+```
+
+#### Read Input File
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author = read_dta(author_file)
+print(paste0("# of rows: ", nrow(df_author)))
+head(df_author)
+
+```
+
+#### Filters
+###### Filter Year [1970-2018]
+###### Filter Kp >= 2 and Wp >= 2
+```{r}
+df_author = df_author %>% filter(NPubsnAuthorIDi >= 10) %>% filter(Kp >= 2) %>% filter(nMeSHMain >= 2) %>% filter(Yp >= 1970 & Yp <= 2018)
+print(paste0("# of rows: ", nrow(df_author)))
+head(df_author)
+```
+
+
+## Convert Data Types
+```{r}
+df_author$Yp = as.integer(df_author$Yp)
+df_author$Kp = as.integer(df_author$Kp)
+df_author$MeanZJp = as.double(df_author$MeanZJp)
+df_author$NRegp = as.integer(df_author$NRegp)
+df_author$NSAp = as.integer(df_author$NSAp)
+df_author$NCIPp = as.integer(df_author$NCIPp)
+df_author$nMeSHMain = as.integer(df_author$nMeSHMain)
+df_author$Tauip = as.integer(df_author$Tauip)
+df_author$Zp = as.double(df_author$Zp)
+```
+
+
+## Model 1 - for broad
+```{r}
+
+model1 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + XSAp + XCIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author, model = "within", index="nAuthorID")
+
+
+summary(model1, robust=TRUE)
+
+
+```
+
+
+
+## Model 2 - for Neighboring
+```{r}
+
+model2 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + NEUROSHORTXSAp + NEUROSHORTXCIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author, model = "within", index="nAuthorID")
+
+
+summary(model2, robust=TRUE)
+
+
+```
+
+
+
+## Model 3 - for Distant
+```{r}
+
+model3 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + NEUROLONGXSAp + NEUROLONGXCIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author, model = "within", index="nAuthorID")
+
+
+summary(model3, robust=TRUE)
+
+
+```
+
+
+## Model 4 - for Broad X_SA&CIP
+```{r}
+df_author_SACIP = df_author %>% filter(NOTXSACIPp!=1)
+
+model4 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + XSACIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model4, robust=TRUE)
+
+
+```
+
+## Model 5 - for Neighboring X_SA&CIP
+```{r}
+df_author_Neighboring_SACIP = df_author %>% filter(NOTNEUROSHORTXSACIPp!=1)
+
+model5 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + NEUROSHORTXSACIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_Neighboring_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model5, robust=TRUE)
+
+
+```
+
+
+## Model 6 - for Distant X_SA&CIP
+```{r}
+df_author_Distant_SACIP = df_author %>% filter(NOTNEUROLONGXSACIPp!=1)
+
+model6 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + NEUROLONGXSACIPp +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_Distant_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model6, robust=TRUE)
+
+
+```
+
+# Effect of Funding
+## Model 1 - Broad
+```{r}
+df_author_Broad_SACIP = df_author %>% filter(NOTXSACIPp != 1)
+
+model1 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + factor(XSACIPp) * factor(IYBRAINPROJECTp) +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_Broad_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model1, robust=TRUE)
+
+
+```
+
+
+## Model 2 - Neighboring
+```{r}
+df_author_Neighboring_SACIP = df_author %>% filter(NOTNEUROSHORTXSACIPp != 1)
+
+model2 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + factor(NEUROSHORTXSACIPp) * factor(IYBRAINPROJECTp) +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_Neighboring_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model2, robust=TRUE)
+
+
+```
+
+## Model 3 - Distant
+```{r}
+df_author_Distant_SACIP = df_author %>% filter(NOTNEUROLONGXSACIPp != 1)
+
+model3 <- plm(Zp ~ logKp + logMajorMeSHp + Tauip + factor(NEUROLONGXSACIPp) * factor(IYBRAINPROJECTp) +
+               SA1 + SA2 + SA3 + SA4 + SA5 + SA6 +
+               CIP1 + CIP2 + CIP3+ CIP4+ CIP5+ CIP6+ CIP7+ CIP8+ CIP9+
+               DIRegionRefinedp1 +  DIRegionRefinedp2 + DIRegionRefinedp3 +  DIRegionRefinedp4 + DIRegionRefinedp5 +  DIRegionRefinedp6 + DIRegionRefinedp7 +  DIRegionRefinedp8 +
+               DYp1 + DYp2 + DYp3 + DYp4 + DYp5 + DYp6 + DYp7 + DYp8 + DYp9 + DYp10 + DYp11 + DYp12 + DYp13 + DYp14 + DYp15 + DYp16 + DYp17 + DYp18 + DYp19 + DYp20 +
+               DYp21 + DYp22 + DYp23 + DYp24 + DYp25 + DYp26 + DYp27 + DYp28 + DYp29 + DYp30 + DYp31 + DYp32 + DYp33 + DYp34 + DYp35 + DYp36 + DYp37 + DYp38 + DYp39 + DYp40 +
+               DYp41 + DYp42 + DYp43 + DYp44 + DYp45 + DYp46 + DYp47 + DYp48 + DYp49 + DYp50 + DYp51 + DYp52 + DYp53 + DYp54 + DYp55 + DYp56 + DYp57 + DYp58 + DYp59 + DYp60 +
+               DYp61 + DYp62 + DYp63 + DYp64 + DYp65 + DYp66 + DYp67 + DYp68 + DYp69 + DYp70 + DYp71 + DYp72 + DYp73
+             , data = df_author_Distant_SACIP, model = "within", index="nAuthorID")
+
+
+summary(model3, robust=TRUE)
+
+
+```

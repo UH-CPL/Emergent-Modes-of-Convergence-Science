@@ -1,0 +1,432 @@
+---
+title: "Panel_modeling_article_level"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(rcompanion)
+library(rms)
+# library(miceadds)
+# library(foreign)
+# library(haven)
+# library(pglm)
+# library(sandwich)
+# library(lmtest)
+# library(clubSandwich)
+# library(clusterSEs)
+# library(MASS)
+# library(questionr)
+# library(stargazer)
+```
+
+
+
+#### Input File Location
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# article_file = 'Data/ArticleLevel-RegData-ALLSA_Xc_1_NData_655386_LONGXCIP2.csv'
+article_file = 'Data/ArticleLevel-RegData-ALLSA_Xc_1_NData_655386.dta'
+
+
+```
+
+#### Read Input File
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# df_article = read.csv(article_file, stringsAsFactors = FALSE)
+# print(paste0("# of rows: ", nrow(df_article)))
+# head(df_article)
+
+df_article = read_dta(article_file)
+print(paste0("# of rows: ", nrow(df_article)))
+head(df_article)
+
+```
+
+#### Filters
+###### Filter Year [1970-2018]
+###### Filter Kp >= 2 and Wp >= 2
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# df_article = df_article %>% filter(Yp >= 1970 & Yp <= 2018) %>% filter(Kp >= 2) %>% filter(nMeSHMain >= 2)
+df_article = df_article %>% filter(Yp >= 1970)
+df_article = df_article %>% filter(Yp <= 2018)
+df_article = df_article %>% filter(Kp >= 2)
+df_article = df_article %>% filter(nMeSHMain >= 2)
+df_article = df_article %>% filter(IRegionRefinedp > 0 & IRegionRefinedp < 7)
+print(paste0("# of rows: ", nrow(df_article)))
+head(df_article)
+```
+
+
+## Convert Data Types
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article$eidsp = as.factor(df_article$eidsp)
+df_article$Yp = as.integer(df_article$Yp)
+df_article$Kp = as.integer(df_article$Kp)
+df_article$MeanZJp = as.double(df_article$MeanZJp)
+df_article$XSAp = as.factor(df_article$XSAp)
+df_article$XCIPp = as.factor(df_article$XCIPp)
+df_article$NRegp = as.integer(df_article$NRegp)
+df_article$NSAp = as.integer(df_article$NSAp)
+df_article$NCIPp = as.integer(df_article$NCIPp)
+df_article$nMeSHMain = as.integer(df_article$nMeSHMain)
+df_article$IRegionRefinedp = as.factor(df_article$IRegionRefinedp)
+df_article$Regionp = as.factor(df_article$Regionp)
+```
+
+
+
+## Model 1 - for X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model1 <- glm(XSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp , data = df_article, family=binomial(link='logit'))
+summary(model1)
+
+## For R-squared value
+nagelkerke(model1)
+
+## odds ratio
+output = odds.ratio(model1)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 2 - for X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model2 <- glm(XCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp , data = df_article, family=binomial(link='logit'))
+summary(model2)
+
+## For R-squared value
+nagelkerke(model2)
+
+## odds ratio
+output = odds.ratio(model2)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 3 - for X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTXSACIPp!=1) 
+
+options(scipen=2)
+model3 <- glm(XSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model3)
+
+## For R-squared value
+nagelkerke(model3)
+
+## odds ratio
+output = odds.ratio(model3)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+# Shifts after Funding
+
+## Model 4 - for X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model4 <- glm(XSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model4)
+# 
+# ## For R-squared value
+nagelkerke(model4)
+# 
+# ## odds ratio
+output = odds.ratio(model4)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+## Model 5 - for X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model5 <- glm(XCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model5)
+# 
+# ## For R-squared value
+nagelkerke(model5)
+# 
+# ## odds ratio
+output = odds.ratio(model5)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 6 - for X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTXSACIPp!=1) 
+
+options(scipen=2)
+model6 <- glm(XSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+              , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model6)
+
+## For R-squared value
+nagelkerke(model6)
+
+## odds ratio
+output = odds.ratio(model6)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+# Distant
+## Model 1 - for X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model1 <- glm(NEUROLONGXSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp , data = df_article, family=binomial(link='logit'))
+summary(model1)
+
+## For R-squared value
+nagelkerke(model1)
+
+## odds ratio
+output = odds.ratio(model1)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+```
+
+## Model 2 - for Distant X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model2 <- glm(NEUROLONGXCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp , data = df_article, family=binomial(link='logit'))
+summary(model2)
+
+## For R-squared value
+nagelkerke(model2)
+
+## odds ratio
+output = odds.ratio(model2)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 3 - for Distant X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTNEUROLONGXSACIPp!=1) 
+
+options(scipen=2)
+model3 <- glm(NEUROLONGXSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model3)
+
+## For R-squared value
+nagelkerke(model3)
+
+## odds ratio
+output = odds.ratio(model3)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+# Shifts after Funding - Distant
+
+## Model 4 - for Distant X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model4 <- glm(NEUROLONGXSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model4)
+# 
+# ## For R-squared value
+nagelkerke(model4)
+# 
+# ## odds ratio
+output = odds.ratio(model4)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+## Model 5 - for Distant  X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model5 <- glm(NEUROLONGXCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model5)
+# 
+# ## For R-squared value
+nagelkerke(model5)
+# 
+# ## odds ratio
+output = odds.ratio(model5)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 6 - for Distant  X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTNEUROLONGXSACIPp!=1) 
+
+options(scipen=2)
+model6 <- glm(NEUROLONGXSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+              , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model6)
+
+## For R-squared value
+nagelkerke(model6)
+
+## odds ratio
+output = odds.ratio(model6)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+# Neighboring
+## Model 1 - for Neighboring X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model1 <- glm(NEUROSHORTXSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp , data = df_article, family=binomial(link='logit'))
+summary(model1)
+
+## For R-squared value
+nagelkerke(model1)
+
+## odds ratio
+output = odds.ratio(model1)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+```
+
+## Model 2 - for Neighboring X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+options(scipen=2)
+model2 <- glm(NEUROSHORTXCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp , data = df_article, family=binomial(link='logit'))
+summary(model2)
+
+## For R-squared value
+nagelkerke(model2)
+
+## odds ratio
+output = odds.ratio(model2)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 3 - for Neighboring X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTNEUROSHORTXSACIPp!=1) 
+
+options(scipen=2)
+model3 <- glm(NEUROSHORTXSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model3)
+
+## For R-squared value
+nagelkerke(model3)
+
+## odds ratio
+output = odds.ratio(model3)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+# Shifts after Funding - Neighboring
+
+## Model 4 - for Neighboring X_SA
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model4 <- glm(NEUROSHORTXSAp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NCIPp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model4)
+# 
+# ## For R-squared value
+nagelkerke(model4)
+# 
+# ## odds ratio
+output = odds.ratio(model4)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+
+## Model 5 - for Neighboring  X_CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+# options(scipen=2)
+model5 <- glm(NEUROSHORTXCIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + NSAp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+                , data = df_article, family=binomial(link='logit'))
+summary(model5)
+# 
+# ## For R-squared value
+nagelkerke(model5)
+# 
+# ## odds ratio
+output = odds.ratio(model5)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
+
+## Model 6 - for Neighboring  X_SA&CIP
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article_SACIP = df_article %>% filter(NOTNEUROSHORTXSACIPp!=1) 
+
+options(scipen=2)
+model6 <- glm(NEUROSHORTXSACIPp ~ Yp + MeanZJp + logKp + logMajorMeSHp + NRegp + IYBRAINPROJECTp + Regionp + (Regionp * factor(IYBRAINPROJECTp))
+              , data = df_article_SACIP, family=binomial(link='logit'))
+summary(model6)
+
+## For R-squared value
+nagelkerke(model6)
+
+## odds ratio
+output = odds.ratio(model6)
+output = apply(output, 2, formatC, format="f", digits=4)
+output
+
+
+```
