@@ -1,0 +1,301 @@
+---
+title: "Sankey_Diagrams"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(rcompanion)
+library(rms)
+library(networkD3)
+library(scales)
+```
+
+
+
+#### Input File Location
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+article_file = 'Data/ArticleLevel-RegData-ALLSA_Xc_1_NData_655386_LONGXCIP2.csv'
+
+```
+
+#### Read Input File
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article = read.csv(article_file, stringsAsFactors = FALSE)
+print(paste0("# of rows: ", nrow(df_article)))
+head(df_article)
+
+```
+
+#### Filters
+###### Filter Year [2009-2018]
+###### Filter IRegionRefinedp > 0 and IRegionRefinedp < 4
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_article = df_article %>% filter(Yp >= 2009)
+df_article = df_article %>% filter(Yp <= 2018)
+df_article = df_article %>% filter(IRegionRefinedp > 0 & IRegionRefinedp < 4)
+print(paste0("# of rows: ", nrow(df_article)))
+head(df_article)
+```
+
+
+## df_mono: where both CIP and SA "mono"
+## df_XD: where both CIP and SA "XD"
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_mono = df_article %>% filter(NEUROLONGXSAp == 0 & NEUROLONGXCIPp == 0)
+df_XD = df_article %>% filter(NEUROLONGXSAp == 1 & NEUROLONGXCIPp == 1)
+print(paste0("# of rows: ", nrow(df_mono)))
+print(head(df_mono))
+print(paste0("# of rows: ", nrow(df_XD)))
+head(df_XD)
+
+```
+
+
+### MONO matrix
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+mono_mat = matrix(0L, nrow = 9, ncol = 6)
+# mono_mat
+
+for(i in 1:nrow(df_mono)){
+  row = df_mono[i,]
+  vSA = c(row$SA1, row$SA2, row$SA3, row$SA4, row$SA5, row$SA6)
+  vCIP = c(row$CIP3, row$CIP1, row$CIP4, row$CIP2, row$CIP6, row$CIP7, row$CIP5, row$CIP8, row$CIP9)
+  Rowi = which(vCIP > 0)
+  vSA = round(vSA / sum(vSA),2)
+ 
+  for(k in 1:length(Rowi)){
+    for(j in 1:6){
+      mono_mat[[Rowi[k],j]] = mono_mat[[Rowi[k],j]] + vSA[j] 
+    }
+    
+  }
+  
+}
+print(mono_mat)
+
+```
+
+### XD matrix
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+XD_mat = matrix(0L, nrow = 9, ncol = 6)
+# XD_mat
+
+for(i in 1:nrow(df_XD)){
+  row = df_XD[i,]
+  vSA = c(row$SA1, row$SA2, row$SA3, row$SA4, row$SA5, row$SA6)
+  vCIP = c(row$CIP3, row$CIP1, row$CIP4, row$CIP2, row$CIP6, row$CIP7, row$CIP5, row$CIP8, row$CIP9)
+  Rowi = which(vCIP > 0)
+  vSA = round((vSA / sum(vSA)),2)
+ 
+  for(k in 1:length(Rowi)){
+    for(j in 1:6){
+      XD_mat[[Rowi[k],j]] = XD_mat[[Rowi[k],j]] + vSA[j] 
+    }
+    
+  }
+  
+}
+print(XD_mat)
+
+```
+
+## Normalize and Scale : Mono Matrix
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# library(scales)
+m = mono_mat
+for(i in 1:9){
+  row = mono_mat[i,]
+  # m[i,] = sapply(row, function(X) {(X - min(row))/(max(row)-min(row))})
+  m[i,] = rescale(row, to=c(0,1))
+  
+}
+m
+
+mm_b = apply(m, 2, function(x) {ifelse(x > 0.5, round(x,2), 0)})
+mm_b
+
+mm = rescale(mm_b, to=c(0,0.02))
+mm
+
+```
+
+## Normalize and Scale : XD Matrix
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+x = XD_mat
+for(i in 1:9){
+  row = XD_mat[i,]
+  x[i,] = sapply(row, function(X) {(X - min(row))/(max(row)-min(row))})
+  
+}
+x
+
+XD_b = apply(x, 2, function(x) {ifelse(x > 0.5, round(x,2), 0)})
+XD_b
+
+XD = rescale(XD_b, to=c(0,0.02))
+XD
+```
+
+## Diff between Mono and XD
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+diff_x_m = XD_b - mm_b
+diff_x_m
+
+## keeping only positive(+) values
+diff_x_m = apply(diff_x_m, 2, function(x) {ifelse(x > 0, round(x,2), 0)})
+diff_x_m
+diff_x_m = rescale(diff_x_m, to=c(0,0.02))
+diff_x_m
+```
+
+
+
+
+## Sankey Diagram: Both CIP and SA Mono
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+nodes = data.frame("name" = c("CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA1", "SA2", "SA3", "SA4", "SA5", "SA6"))
+
+links = as.data.frame(matrix(c(0,9, mm[1,1],
+                                     0,12, mm[1,4],
+                                     1,9, mm[2,1],
+                                     1,10, mm[2,2],
+                                     1,12, mm[2,4],
+                                     2,10, mm[3,2],
+                                     2,11, mm[3,3],
+                                     2,12, mm[3,4],
+                                     3,10, mm[4,2],
+                                     3,11, mm[4,3],
+                                     3,12, mm[4,4],
+                                     4,10, mm[5,2],
+                                     4,12, mm[5,4],
+                                     5,10, mm[6,2],
+                                     5,11, mm[6,3],
+                                     5,12, mm[6,4],
+                                     6,12, mm[7,4],
+                                     7,10, mm[8,2],
+                                     7,12, mm[8,4],
+                                     8,10, mm[9,2],
+                                     8,11, mm[9,3],
+                                     8,12, mm[9,4],
+                               12,12, 0.02), byrow = TRUE, ncol = 3))
+
+names(links) = c("source", "target", "value")
+links$group <- as.factor(c("type_0","type_0","type_1","type_1","type_1","type_2", "type_2","type_2","type_3","type_3", "type_3","type_4","type_4","type_5","type_5","type_5","type_6","type_7","type_7","type_8","type_8","type_8", "type_12"))
+
+node_color <- 'd3.scaleOrdinal() .domain(["CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA1", "SA2", "SA3", "SA4", "SA5", "SA6", "type_0", "type_1", "type_2", "type_3", "type_4", "type_5", "type_6", "type_7", "type_8", "type_12"]) .range(["yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray", "red", "orange", "lightgreen", "darkolivegreen", "black", "gray", "yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray","white"])'
+
+p = sankeyNetwork(Links = links, Nodes = nodes,
+ Source = "source", Target = "target",
+ Value = "value", NodeID = "name",
+ fontSize= 12, nodeWidth = 20,
+ height = 800, width = "100%",
+ units = "TWh",
+ colourScale=node_color,
+ LinkGroup="group",
+ iterations = 0,
+ nodePadding=10)
+
+p
+
+
+```
+
+
+## Sankey Diagram: Both CIP and SA XD
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+# nodes = data.frame("name" = c("CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA1", "SA2", "SA3", "SA4", "SA5", "SA6"))
+nodes = data.frame("name" = c("CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA2", "SA4", "SA5"))
+
+
+links = as.data.frame(matrix(c(0,11, XD[1,5],
+                               1,11, XD[2,5],
+                               2,10, XD[3,4],
+                               2,11, XD[3,5],
+                               3, 9, XD[4,2],
+                               3,10, XD[4,4],
+                               3,11, XD[4,5],
+                               4,11, XD[5,5],
+                               5,11, XD[6,5],
+                               6,10, XD[7,4],
+                               6,11, XD[7,5],
+                               7,11, XD[8,5],
+                               8,11, XD[9,5],
+                               10,10, 0.02), byrow = TRUE, ncol = 3))
+
+names(links) = c("source", "target", "value")
+links$group <- as.factor(c("type_0","type_1","type_2", "type_2","type_3","type_3", "type_3","type_4","type_5","type_6","type_6","type_7","type_8","type_11"))
+
+node_color <- 'd3.scaleOrdinal() .domain(["CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA2", "SA4", "SA5", "type_0", "type_1", "type_2", "type_3", "type_4", "type_5", "type_6", "type_7", "type_8","type_11"]) .range(["yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray", "orange",  "darkolivegreen", "black", "yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray","white"])'
+
+p = sankeyNetwork(Links = links, Nodes = nodes,
+ Source = "source", Target = "target",
+ Value = "value", NodeID = "name",
+ fontSize= 12, nodeWidth = 20,
+ height = 800, width = "100%",
+ units = "TWh",
+ colourScale=node_color,
+ LinkGroup="group",
+ iterations = 0,
+ nodePadding=10)
+
+
+p
+
+
+```
+
+## Sankey Diagram: Difference between XD and Mono
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+
+nodes = data.frame("name" = c("CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA5"))
+
+
+links = as.data.frame(matrix(c(0,9, diff_x_m[1,5],
+                               1,9, diff_x_m[2,5],
+                               2,9, diff_x_m[3,5],
+                               3,9, diff_x_m[4,5],
+                               4,9, diff_x_m[5,5],
+                               5,9, diff_x_m[6,5],
+                               6,9, diff_x_m[7,5],
+                               7,9, diff_x_m[8,5],
+                               8,9, diff_x_m[9,5]), byrow = TRUE, ncol = 3))
+
+names(links) = c("source", "target", "value")
+links$group <- as.factor(c("type_0","type_1","type_2", "type_3","type_4","type_5","type_6", "type_7","type_8"))
+
+node_color <- 'd3.scaleOrdinal() .domain(["CIP3", "CIP1", "CIP4", "CIP2", "CIP6", "CIP7", "CIP5", "CIP8", "CIP9", "SA5", "type_0", "type_1", "type_2", "type_3", "type_4", "type_5", "type_6", "type_7", "type_8"]) .range(["yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray", "black", "yellow", "red", "darkolivegreen" , "orange", "seagreen", "palegreen", "green", "gray", "gray"])'
+
+p = sankeyNetwork(Links = links, Nodes = nodes,
+ Source = "source", Target = "target",
+ Value = "value", NodeID = "name",
+ fontSize= 12, nodeWidth = 20,
+ height = 800, width = "100%",
+ colourScale=node_color,
+ LinkGroup="group",
+ iterations = 0,
+ nodePadding=10)
+
+p
+
+
+```
+
+
+
+
+
+
+
+
+
+
