@@ -1,0 +1,97 @@
+---
+title: "Node_creator_3category"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+
+## file details:
+###  (1) Filter Authors after 1960 , remove authors witout CIP, remove authors without region
+#### (2) join CIP Category
+#### (3) create 5 yearly columns from 1999 to 2018
+#### (4) separate authors based on Region
+#### (5) Save files
+
+
+
+
+#### Read Files
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author = read.csv('Data/brain_author.csv', stringsAsFactors = FALSE)
+df_cip_cat = read.csv('Data/unique_CIP_list_3category.csv', stringsAsFactors = FALSE)
+df_author
+df_cip_cat
+```
+### Filter Authors after 1960 , remove authors witout CIP, remove authors without region
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author = df_author %>% filter(min_pub_year > 1960) %>% filter(!is.na(cip_title)) %>% filter(!is.na(region))
+df_author
+print("------------ After Removing authors without CIP TITLE and first_publication after 1960 -------------")
+print(paste0('Total Authors         : ',nrow(df_author)))
+
+```
+#### join CIP Category
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author$scopus_id = as.factor(df_author$scopus_id)
+df_author$cip_title = as.factor(df_author$cip_title)
+
+colnames(df_cip_cat) <- c('cip_title', 'cip_type', 'combined_cip')
+df_cip_cat$cip_title = as.factor(df_cip_cat$cip_title)
+df_cip_cat$cip_type = as.factor(df_cip_cat$cip_type)
+
+df_author = df_author %>% merge(df_cip_cat, by='cip_title')
+df_author
+```
+
+
+#### create 5 yearly columns from 1999 to 2018
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author = df_author %>% mutate(y_1999 = ifelse(min_pub_year <= 2003, 1, 0))
+df_author = df_author %>% mutate(y_2004 = ifelse(min_pub_year <= 2008, 1, 0))
+df_author = df_author %>% mutate(y_2009 = ifelse(min_pub_year <= 2013, 1, 0))
+df_author = df_author %>% mutate(y_2014 = ifelse(min_pub_year <= 2018, 1, 0))
+df_author
+
+```
+
+#### separate authors based on REGION
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_us = df_author %>% filter(region == 'US/Canada')
+df_author_eu = df_author %>% filter(region == 'Europe')
+df_author_australasia = df_author %>% filter(region == 'Australasia')
+
+df_author_us
+df_author_eu
+df_author_australasia
+```
+
+#### select spefic columns
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_us = df_author_us %>% select(scopus_id, firstName, lastName, school, cip_title, cip_type, country, region, h_index, num_publications, citations, 
+                                       min_pub_year, y_05, y_1999, y_2004, y_2009, y_2014)
+df_author_eu = df_author_eu %>% select(scopus_id, firstName, lastName, school, cip_title, cip_type, country, region, h_index, num_publications, citations, 
+                                       min_pub_year, y_05, y_1999, y_2004, y_2009, y_2014)
+df_author_australasia = df_author_australasia %>% select(scopus_id, firstName, lastName, school, cip_title, cip_type, country, region, h_index, num_publications, 
+                                                         citations, min_pub_year, y_05, y_1999, y_2004, y_2009, y_2014)
+```
+
+
+
+#### Save as Node file
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+write.csv(df_author_us, 'Data/Node_US_3cat.csv')
+write.csv(df_author_eu, 'Data/Node_Europe_3cat.csv')
+write.csv(df_author_australasia, 'Data/Node_Australasia_3cat.csv')
+```
+
+
+
+
+

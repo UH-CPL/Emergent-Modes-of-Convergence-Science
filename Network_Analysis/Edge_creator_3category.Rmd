@@ -1,0 +1,365 @@
+---
+title: "Edge_Creator"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+### Read All Files
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_US <- read.csv("Data/Node_US_3cat.csv",stringsAsFactors = FALSE)
+df_author_EU <- read.csv("Data/Node_Europe_3cat.csv",stringsAsFactors = FALSE)
+df_author_Australasia <- read.csv("Data/Node_Australasia_3cat.csv",stringsAsFactors = FALSE)
+df_authorList <- read.csv("Data/brain_publication_authors.csv",stringsAsFactors = FALSE)
+df_pub_details <- read.csv("Data/brain_publication_details.csv",stringsAsFactors = FALSE)
+
+
+df_author_US
+df_author_EU
+df_author_Australasia
+df_authorList
+df_pub_details
+
+
+
+```
+
+### Step 1: select only  eid and pub year from publication details file
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+print(paste0("# of rows: ", nrow(df_pub_details)))
+df_pub_details = df_pub_details %>% select(eids, pub_year) %>% unique()
+print(paste0("# of unique publications: ", nrow(df_pub_details)))
+df_pub_details$eids = as.factor(df_pub_details$eids)
+df_pub_details$pub_year = as.integer(df_pub_details$pub_year)
+df_pub_details
+```
+
+### Step 2: join author list data with publication details for accessing publication year
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_authorList$eids = as.factor(df_authorList$eids)
+
+df_authorList = df_authorList %>% merge(df_pub_details, by ='eids')
+df_authorList
+
+```
+
+### Step 3: seperate into 4 groups. 1999 - 2003, 2004-2008,2009-2013, 2014-2018
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_authorList_1999 = df_authorList %>% filter(pub_year <= 2003)
+df_authorList_2004 = df_authorList %>% filter(pub_year <= 2008)
+df_authorList_2009 = df_authorList %>% filter(pub_year <= 2013)
+df_authorList_2014 = df_authorList
+
+df_authorList_1999
+df_authorList_2004
+df_authorList_2009
+df_authorList_2014
+
+
+```
+
+## For 1999-2003
+### Step 4(a): SELECT specific columns and set data types
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+df_author_US = df_author_US %>% select(ID, scopus_id)
+df_author_EU = df_author_EU %>% select(ID, scopus_id)
+df_author_Australasia = df_author_Australasia %>% select(ID, scopus_id)
+
+df_authorList = df_authorList_1999 %>% select(scopus_id, co_author_scopus_id)
+
+df_author_US$ID = as.integer(df_author_US$ID)
+df_author_US$scopus_id = as.factor(df_author_US$scopus_id)
+
+df_author_EU$ID = as.integer(df_author_EU$ID)
+df_author_EU$scopus_id = as.factor(df_author_EU$scopus_id)
+
+df_author_Australasia$ID = as.integer(df_author_Australasia$ID)
+df_author_Australasia$scopus_id = as.factor(df_author_Australasia$scopus_id)
+
+df_authorList$scopus_id = as.factor(df_authorList$scopus_id)
+df_authorList$co_author_scopus_id = as.factor(df_authorList$co_author_scopus_id)
+
+df_author_US
+df_author_EU
+df_author_Australasia
+df_authorList
+
+### take only unique rows
+df_author_coAuthor = df_authorList %>% unique()
+df_author_coAuthor
+
+
+```
+
+### Step 4(b)(1): Create EDGE dataframe for USA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_US = df_author_coAuthor %>% merge(df_author_US , by = 'scopus_id')
+colnames(df_author_coAuthor_US) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_US = df_author_coAuthor_US %>% merge(df_author_US , by = 'scopus_id')
+df_author_coAuthor_US = df_author_coAuthor_US %>% select(Source, ID)
+colnames(df_author_coAuthor_US) <- c('Source', 'Target')
+df_author_coAuthor_US = df_author_coAuthor_US %>% filter(Source != Target)
+df_author_coAuthor_US
+write.csv(df_author_coAuthor_US, 'Data/Edge_US_3cat_1999.csv', row.names = FALSE)
+
+```
+
+### Step 4(b)(2): Create EDGE dataframe for EUROPE region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_EU = df_author_coAuthor %>% merge(df_author_EU , by = 'scopus_id')
+colnames(df_author_coAuthor_EU) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% merge(df_author_EU , by = 'scopus_id')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% select(Source, ID)
+colnames(df_author_coAuthor_EU) <- c('Source', 'Target')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% filter(Source != Target)
+df_author_coAuthor_EU
+write.csv(df_author_coAuthor_EU, 'Data/Edge_Europe_3cat_1999.csv', row.names = FALSE)
+
+```
+
+### Step 4(b)(3): Create EDGE dataframe for AUSTRALASIA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_Australasia = df_author_coAuthor %>% merge(df_author_Australasia , by = 'scopus_id')
+colnames(df_author_coAuthor_Australasia) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% merge(df_author_Australasia , by = 'scopus_id')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% select(Source, ID)
+colnames(df_author_coAuthor_Australasia) <- c('Source', 'Target')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% filter(Source != Target)
+df_author_coAuthor_Australasia
+write.csv(df_author_coAuthor_Australasia, 'Data/Edge_Australasia_3cat_1999.csv', row.names = FALSE)
+
+```
+
+## For 2004-2008
+### Step 4(a): SELECT specific columns and set data types
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+df_author_US = df_author_US %>% select(ID, scopus_id)
+df_author_EU = df_author_EU %>% select(ID, scopus_id)
+df_author_Australasia = df_author_Australasia %>% select(ID, scopus_id)
+
+df_authorList = df_authorList_2004 %>% select(scopus_id, co_author_scopus_id)
+
+df_author_US$ID = as.integer(df_author_US$ID)
+df_author_US$scopus_id = as.factor(df_author_US$scopus_id)
+
+df_author_EU$ID = as.integer(df_author_EU$ID)
+df_author_EU$scopus_id = as.factor(df_author_EU$scopus_id)
+
+df_author_Australasia$ID = as.integer(df_author_Australasia$ID)
+df_author_Australasia$scopus_id = as.factor(df_author_Australasia$scopus_id)
+
+df_authorList$scopus_id = as.factor(df_authorList$scopus_id)
+df_authorList$co_author_scopus_id = as.factor(df_authorList$co_author_scopus_id)
+
+df_author_US
+df_author_EU
+df_author_Australasia
+df_authorList
+
+### take only unique rows
+df_author_coAuthor = df_authorList %>% unique()
+df_author_coAuthor
+
+
+```
+
+### Step 4(b)(1): Create EDGE dataframe for USA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_US = df_author_coAuthor %>% merge(df_author_US , by = 'scopus_id')
+colnames(df_author_coAuthor_US) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_US = df_author_coAuthor_US %>% merge(df_author_US , by = 'scopus_id')
+df_author_coAuthor_US = df_author_coAuthor_US %>% select(Source, ID)
+colnames(df_author_coAuthor_US) <- c('Source', 'Target')
+df_author_coAuthor_US = df_author_coAuthor_US %>% filter(Source != Target)
+df_author_coAuthor_US
+write.csv(df_author_coAuthor_US, 'Data/Edge_US_3cat_2004.csv', row.names = FALSE)
+
+```
+
+### Step 4(b)(2): Create EDGE dataframe for EUROPE region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_EU = df_author_coAuthor %>% merge(df_author_EU , by = 'scopus_id')
+colnames(df_author_coAuthor_EU) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% merge(df_author_EU , by = 'scopus_id')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% select(Source, ID)
+colnames(df_author_coAuthor_EU) <- c('Source', 'Target')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% filter(Source != Target)
+df_author_coAuthor_EU
+write.csv(df_author_coAuthor_EU, 'Data/Edge_Europe_3cat_2004.csv', row.names = FALSE)
+
+```
+
+### Step 4(b)(3): Create EDGE dataframe for AUSTRALASIA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_Australasia = df_author_coAuthor %>% merge(df_author_Australasia , by = 'scopus_id')
+colnames(df_author_coAuthor_Australasia) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% merge(df_author_Australasia , by = 'scopus_id')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% select(Source, ID)
+colnames(df_author_coAuthor_Australasia) <- c('Source', 'Target')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% filter(Source != Target)
+df_author_coAuthor_Australasia
+write.csv(df_author_coAuthor_Australasia, 'Data/Edge_Australasia_3cat_2004.csv', row.names = FALSE)
+
+```
+
+## For 2009-2013
+### Step 4(a): SELECT specific columns and set data types
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+df_author_US = df_author_US %>% select(ID, scopus_id)
+df_author_EU = df_author_EU %>% select(ID, scopus_id)
+df_author_Australasia = df_author_Australasia %>% select(ID, scopus_id)
+
+df_authorList = df_authorList_2009 %>% select(scopus_id, co_author_scopus_id)
+
+df_author_US$ID = as.integer(df_author_US$ID)
+df_author_US$scopus_id = as.factor(df_author_US$scopus_id)
+
+df_author_EU$ID = as.integer(df_author_EU$ID)
+df_author_EU$scopus_id = as.factor(df_author_EU$scopus_id)
+
+df_author_Australasia$ID = as.integer(df_author_Australasia$ID)
+df_author_Australasia$scopus_id = as.factor(df_author_Australasia$scopus_id)
+
+df_authorList$scopus_id = as.factor(df_authorList$scopus_id)
+df_authorList$co_author_scopus_id = as.factor(df_authorList$co_author_scopus_id)
+
+df_author_US
+df_author_EU
+df_author_Australasia
+df_authorList
+
+### take only unique rows
+df_author_coAuthor = df_authorList %>% unique()
+df_author_coAuthor
+
+
+```
+### Step 4(b)(1): Create EDGE dataframe for USA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_US = df_author_coAuthor %>% merge(df_author_US , by = 'scopus_id')
+colnames(df_author_coAuthor_US) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_US = df_author_coAuthor_US %>% merge(df_author_US , by = 'scopus_id')
+df_author_coAuthor_US = df_author_coAuthor_US %>% select(Source, ID)
+colnames(df_author_coAuthor_US) <- c('Source', 'Target')
+df_author_coAuthor_US = df_author_coAuthor_US %>% filter(Source != Target)
+df_author_coAuthor_US
+write.csv(df_author_coAuthor_US, 'Data/Edge_US_3cat_2009.csv', row.names = FALSE)
+
+```
+### Step 4(b)(2): Create EDGE dataframe for EUROPE region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_EU = df_author_coAuthor %>% merge(df_author_EU , by = 'scopus_id')
+colnames(df_author_coAuthor_EU) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% merge(df_author_EU , by = 'scopus_id')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% select(Source, ID)
+colnames(df_author_coAuthor_EU) <- c('Source', 'Target')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% filter(Source != Target)
+df_author_coAuthor_EU
+write.csv(df_author_coAuthor_EU, 'Data/Edge_Europe_3cat_2009.csv', row.names = FALSE)
+
+```
+### Step 4(b)(3): Create EDGE dataframe for AUSTRALASIA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_Australasia = df_author_coAuthor %>% merge(df_author_Australasia , by = 'scopus_id')
+colnames(df_author_coAuthor_Australasia) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% merge(df_author_Australasia , by = 'scopus_id')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% select(Source, ID)
+colnames(df_author_coAuthor_Australasia) <- c('Source', 'Target')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% filter(Source != Target)
+df_author_coAuthor_Australasia
+write.csv(df_author_coAuthor_Australasia, 'Data/Edge_Australasia_3cat_2009.csv', row.names = FALSE)
+
+```
+
+
+
+## For 2014-2018
+### Step 4(a): SELECT specific columns and set data types
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+df_author_US = df_author_US %>% select(ID, scopus_id)
+df_author_EU = df_author_EU %>% select(ID, scopus_id)
+df_author_Australasia = df_author_Australasia %>% select(ID, scopus_id)
+
+df_authorList = df_authorList_2014 %>% select(scopus_id, co_author_scopus_id)
+
+df_author_US$ID = as.integer(df_author_US$ID)
+df_author_US$scopus_id = as.factor(df_author_US$scopus_id)
+
+df_author_EU$ID = as.integer(df_author_EU$ID)
+df_author_EU$scopus_id = as.factor(df_author_EU$scopus_id)
+
+df_author_Australasia$ID = as.integer(df_author_Australasia$ID)
+df_author_Australasia$scopus_id = as.factor(df_author_Australasia$scopus_id)
+
+df_authorList$scopus_id = as.factor(df_authorList$scopus_id)
+df_authorList$co_author_scopus_id = as.factor(df_authorList$co_author_scopus_id)
+
+df_author_US
+df_author_EU
+df_author_Australasia
+df_authorList
+
+### take only unique rows
+df_author_coAuthor = df_authorList %>% unique()
+df_author_coAuthor
+
+
+```
+### Step 4(b)(1): Create EDGE dataframe for USA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_US = df_author_coAuthor %>% merge(df_author_US , by = 'scopus_id')
+colnames(df_author_coAuthor_US) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_US = df_author_coAuthor_US %>% merge(df_author_US , by = 'scopus_id')
+df_author_coAuthor_US = df_author_coAuthor_US %>% select(Source, ID)
+colnames(df_author_coAuthor_US) <- c('Source', 'Target')
+df_author_coAuthor_US = df_author_coAuthor_US %>% filter(Source != Target)
+df_author_coAuthor_US
+write.csv(df_author_coAuthor_US, 'Data/Edge_US_3cat_2014.csv', row.names = FALSE)
+
+```
+### Step 4(b)(2): Create EDGE dataframe for EUROPE region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_EU = df_author_coAuthor %>% merge(df_author_EU , by = 'scopus_id')
+colnames(df_author_coAuthor_EU) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% merge(df_author_EU , by = 'scopus_id')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% select(Source, ID)
+colnames(df_author_coAuthor_EU) <- c('Source', 'Target')
+df_author_coAuthor_EU = df_author_coAuthor_EU %>% filter(Source != Target)
+df_author_coAuthor_EU
+write.csv(df_author_coAuthor_EU, 'Data/Edge_Europe_3cat_2014.csv', row.names = FALSE)
+
+```
+### Step 4(b)(3): Create EDGE dataframe for AUSTRALASIA region
+#### Join 2 times  and change the column names for merging purposes. save the edge data. 'Source' and 'Target' required for GEPHI. Remove rows with same source and target.
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+df_author_coAuthor_Australasia = df_author_coAuthor %>% merge(df_author_Australasia , by = 'scopus_id')
+colnames(df_author_coAuthor_Australasia) <- c('author_id', 'scopus_id', 'Source')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% merge(df_author_Australasia , by = 'scopus_id')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% select(Source, ID)
+colnames(df_author_coAuthor_Australasia) <- c('Source', 'Target')
+df_author_coAuthor_Australasia = df_author_coAuthor_Australasia %>% filter(Source != Target)
+df_author_coAuthor_Australasia
+write.csv(df_author_coAuthor_Australasia, 'Data/Edge_Australasia_3cat_2014.csv', row.names = FALSE)
+
+```
