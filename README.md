@@ -33,7 +33,7 @@ Please download the dataset from [OSF Data Repository] (https://osf.io/3myt8/, h
    
 See redme.txt file for node size and coloring techniques.
 
-**Fig 2B**
+**Fig 3B**
 - Sankey_diagrams.Rmd
   - generate Sankey diagrams or Fig 2B.
 
